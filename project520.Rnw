@@ -1,0 +1,427 @@
+\batchmode
+\makeatletter
+\def\input@path{{/Users/cpsievert/Desktop/github/local/zero-inflated-hrs//}}
+\makeatother
+\documentclass{article}
+\usepackage[sc]{mathpazo}
+\renewcommand{\sfdefault}{lmss}
+\renewcommand{\ttdefault}{lmtt}
+\usepackage[T1]{fontenc}
+\usepackage{geometry}
+\geometry{verbose,tmargin=2.5cm,bmargin=2.5cm,lmargin=2.5cm,rmargin=2.5cm}
+\setcounter{secnumdepth}{2}
+\setcounter{tocdepth}{2}
+\usepackage{url}
+\usepackage{amsmath}
+\usepackage[authoryear]{natbib}
+\usepackage[unicode=true,pdfusetitle,
+ bookmarks=true,bookmarksnumbered=true,bookmarksopen=true,bookmarksopenlevel=2,
+ breaklinks=false,pdfborder={0 0 1},backref=false,colorlinks=false]
+ {hyperref}
+\hypersetup{
+ pdfstartview={XYZ null null 1}}
+
+\makeatletter
+%%%%%%%%%%%%%%%%%%%%%%%%%%%%%% User specified LaTeX commands.
+\renewcommand{\textfraction}{0.05}
+\renewcommand{\topfraction}{0.8}
+\renewcommand{\bottomfraction}{0.8}
+\renewcommand{\floatpagefraction}{0.75}
+
+\usepackage[buttonsize=1em]{animate}
+
+\makeatother
+
+\begin{document}
+<<setup, include=FALSE, cache=FALSE>>=
+library(knitr)
+## set global chunk options
+opts_chunk$set(fig.path='figure/', cache.path='cache/', fig.align='center', out.width='8cm', out.height='6cm', echo=FALSE, message=FALSE)
+@
+
+
+\title{A Bayesian Model for Evaluating MLB Hitting Performance}
+
+
+\author{Carson Sievert}
+
+\maketitle
+
+\section{Introduction}
+
+Statistical methods have been used to understand and analyze the game
+of baseball for many years. An obvious and popular application is
+modeling and predicting player performance. \citet{bayesball} proposes
+a bayesian model for predicting hitting performance at the season
+level. This model was shown to be effective at prediction - especially
+for players with little experience at the Major League level thanks
+to a shrinking towards the population mean component. In the discussion
+of that paper, reviewers call for a model at the game (rather than)
+level. The reasoning is to account for well-known factors on performance
+such as a ``park effects'' and ``home field effects''. This paper
+explores a step in that direction by modeling home run performance
+at the game level and accounting for any ``home field effect''.
+
+
+\section{Data Collection}
+
+The data used for this project was taken from the Major League Baseball
+Advanced Media (MLBAM) website \url{http://gd2.mlb.com/components/game/mlb/}
+using the \texttt{R} package \texttt{pitchRx} \citet{pitchRx}.
+The number of home runs and number of atbats in every game over the
+2012 season was collected for the five players with the highest home
+run total in 2012.
+
+
+\section{Model Formulation}
+
+Since home runs are such a rare event, we may want some type of zero-inflated
+model if we want to model the number of home runs in a particular
+game. For that reason, consider a latent Bernoulli random variable
+$X_{ij}$ that will govern whether player $i$ in game $j$ has ``potential''
+to get at least one success in $n_{ij}$ atbats. The Bernoulli parameter
+$\theta_{ij}$ could thought of as a players ``potential'' for a
+particular game.
+
+\[
+f(X_{ij}=x_{ij}|\theta_{ij})=\theta_{ij}^{x_{ij}}(1-\theta_{ij})^{(1-x_{ij})},0<\theta_{ij}<1
+\]
+
+
+where 
+\[
+x_{ij}=\begin{cases}
+0 & \mbox{no "potential success" }\\
+1 & \mbox{"potential success" }
+\end{cases}
+\]
+ 
+
+To model the actual number of successes for player $i$ in game $j$,
+we use a Binomial random variable $Y_{ij}$ where the number of trials
+$n_{ij}$ is considered fixed. In some sense, the success probability
+$\psi_{ij}$ could thought of as a player's ``ability'' to hit a
+home run in a particular game. To get the marginal distribution for
+$Y_{ij}$, we could ``integrate out'' the latent $X_{ij}$. For
+example,
+
+\begin{align*}
+P(Y_{ij}=0)= & P(Y_{ij}=0|X_{ij}=0)P(X_{ij}=0)+P(Y_{ij}=0|X_{ij}=1)P(X_{ij}=1)=(1-\theta_{ij})+\theta_{ij}(1-\psi_{ij})^{n_{ij}}\\
+P(Y_{ij}=1)= & P(Y_{ij}=1|X_{ij}=1)P(X_{ij}=1)=n_{ij}\psi_{ij}(1-\psi_{ij})^{n_{ij}-1}\theta_{ij}\\
+P(Y_{ij}=2)= & P(Y_{ij}=2|X_{ij}=1)P(X_{ij}=1)=\binom{{n_{ij}}}{2}\psi_{ij}^{2}(1-\psi_{ij})^{n_{ij}-2}\theta_{ij}\\
+\vdots
+\end{align*}
+\begin{align*}
+\end{align*}
+
+
+We can describe this distribution in general by:
+\[
+\]
+
+
+\[
+P(Y_{ij}=y_{ij})=\begin{cases}
+(1-\theta_{ij})+\theta_{ij}(1-\psi_{ij})^{n_{ij}} & \mbox{if }y_{ij}=0\\
+\binom{{n_{ij}}}{y_{ij}}\psi_{ij}^{y_{ij}}(1-\psi_{ij})^{(n_{ij}-y_{ij})}\theta_{ij} & \mbox{if }y_{ij}\in\{{1,2,\dots,n_{ij}}\}
+\end{cases},0<\psi_{ij}<1
+\]
+
+
+Now we consider the parameters $\theta_{ij}$ and $\psi_{ij}$ to
+be unknown quantities and can be described through the deterministic
+relationships: 
+
+\[
+\log(\frac{\theta_{ij}}{1-\theta_{ij}})=\beta_{i}+\alpha_{i}H_{ij}
+\]
+
+
+\[
+\log(\frac{\psi_{ij}}{1-\psi_{ij}})=\delta_{i}+\lambda_{i}H_{ij}
+\]
+
+
+where $H_{ij}$ is an indicator variable that is 1 if game $j$ was
+a ``home'' game for player $i$ and 0 otherwise. This leaves use
+to choose distributions for the (independent) set of random quantities
+$\beta_{i},\delta_{i},\alpha_{i},\lambda_{i}:$
+
+\begin{align*}
+ & \beta_{i}\sim N(\beta_{0},\sigma_{\beta}^{2})\\
+ & \alpha_{i}\sim N(\alpha_{0},\sigma_{\alpha}^{2})\\
+ & \delta_{i}\sim N(\delta_{0},\sigma_{\delta}^{2})\\
+ & \lambda_{i}\sim N(\lambda_{0},\sigma_{\lambda}^{2})
+\end{align*}
+
+
+where $\beta_{0},\sigma_{\beta},\alpha_{0},\sigma_{\alpha},\delta_{0},\sigma_{\delta},\lambda_{0},$
+and $\sigma_{\lambda}$ are all ``known'' quantities that are chosen
+such that we have diffuse priors that reflects a lack of prior knowledge.
+In particular, the mean and standard deviation was set to 0 and 5,
+respectively.
+
+
+\section{Fitting the model}
+
+This section addresses how samples from the joint posterior distribution
+were obtained. Full conditional posterior distributions were derived
+for all quantities involved (besides the observed data). A Gibbs sampling
+algorithm was employed on these full conditionals to obtain draws
+from the joint distribution. 
+
+\[
+p(\beta_{i},\delta_{i},\alpha_{i},\lambda_{i}|\textbf{{\ensuremath{y_{i}}}})\propto p(\textbf{{\ensuremath{y_{i}}}}|\beta_{i},\delta_{i},\alpha_{i},\lambda_{i})p(\beta_{i})p(\delta_{i})p(\alpha_{i})p(\lambda_{i})
+\]
+
+
+The notation $p(x|\cdot)$ is now used to represent the conditional
+density of $X$ given all other quantities. Note that $y_{i}$ is
+used to represent a vector whose length is equal to the number of
+games played by player $i$.
+
+
+\subsection{Full conditionals}
+\begin{enumerate}
+\item The full conditional densities of $\beta_{i}$ for $i=1,\dots,5$
+are:
+\[
+p(\beta_{i}|\cdot)\propto p(y_{i}|\cdot)p(\beta_{i})\propto p(y_{i}|\cdot)exp\left\{ \frac{{-(\beta_{i}-\beta_{0})^{2}}}{2\sigma_{\beta}^{2}}\right\} 
+\]
+In order to sample from this form, an \emph{adaptive} Metropolis-Hastings
+algorithm is used with a Gaussian proposal $N(\beta_{i}^{(k)},(\tau_{\beta}^{2})^{(k)})$
+where $\beta_{i}^{(k)}$is the simulated value from the $k^{th}$
+iteration. The adaptive piece helps to obtain a reasonable acceptance
+rate by increasing or decreasing $(\tau_{\beta}^{2})^{(k+1)}$ based
+on whether or not $k^{th}$ proposal was accepted.
+\item The full conditional densities of $\delta_{i}$ for $i=1,\dots,5$
+are:
+\[
+p(\delta_{i}|\cdot)\propto p(y_{i}|\cdot)p(\delta_{i})\propto p(y_{i}|\cdot)exp\left\{ \frac{{-(\delta_{i}-\delta_{0})^{2}}}{2\sigma_{\delta}^{2}}\right\} 
+\]
+In order to sample from this form, an \emph{adaptive} Metropolis-Hastings
+algorithm is used with a Gaussian proposal $N(\delta_{i}^{(k)},(\tau_{\delta}^{2})^{(k)})$
+where $\delta_{i}^{(k)}$is the simulated value from the $k^{th}$
+iteration. The adaptive piece helps to obtain a reasonable acceptance
+rate by increasing or decreasing $(\tau_{\delta}^{2})^{(k+1)}$ based
+on whether or not $k^{th}$ proposal was accepted.
+\item The full conditional densities of $\alpha_{i}$ for $i=1,\dots,5$
+are:
+\[
+p(\alpha_{i}|\cdot)\propto p(y_{i}|\cdot)p(\alpha_{i})\propto p(y_{i}|\cdot)exp\left\{ \frac{{-(\alpha_{i}-\alpha_{0})^{2}}}{2\sigma_{\alpha}^{2}}\right\} 
+\]
+In order to sample from this form, an \emph{adaptive} Metropolis-Hastings
+algorithm is used with a Gaussian proposal $N(\alpha_{i}^{(k)},(\tau_{\alpha}^{2})^{(k)})$
+where $\alpha_{i}^{(k)}$is the simulated value from the $k^{th}$
+iteration. The adaptive piece helps to obtain a reasonable acceptance
+rate by increasing or decreasing $(\tau_{\alpha}^{2})^{(k+1)}$ based
+on whether or not $k^{th}$ proposal was accepted.
+\item The full conditional densities of $\lambda_{i}$ for $i=1,\dots,5$
+are:
+\[
+p(\lambda_{i}|\cdot)\propto p(y_{i}|\cdot)p(\lambda_{i})\propto p(y_{i}|\cdot)exp\left\{ \frac{{-(\lambda_{i}-\lambda_{0})^{2}}}{2\sigma_{\lambda}^{2}}\right\} 
+\]
+In order to sample from this form, an \emph{adaptive} Metropolis-Hastings
+algorithm is used with a Gaussian proposal $N(\lambda_{i}^{(k)},(\tau_{\lambda}^{2})^{(k)})$
+where $\lambda_{i}^{(k)}$is the simulated value from the $k^{th}$
+iteration. The adaptive piece helps to obtain a reasonable acceptance
+rate by increasing or decreasing $(\tau_{\lambda}^{2})^{(k+1)}$ based
+on whether or not $k^{th}$ proposal was accepted.
+\end{enumerate}
+
+\subsection{Monitoring Convergence}
+
+Three different chains with randomly dispersed starting values were
+each run for 10000 iterations with an adaptation period of 1000 and
+burnin of 5000. The Gelman and Rubin scale reduction factor for each
+parameter was computed and is presented below. Clearly, the factor
+value looks good (very close or equal to 1) for all $\alpha_{i}$
+in table 1. Similarly, the factor value looks good for all $\beta_{i}$
+in table 2. The factor values for some $\delta_{i}$ in table 3 and
+$\lambda_{i}$ in table 4 are a little higher than we would like to
+see, but they don't cause an overwhelming reason for worry.
+
+<<alphas, results='asis'>>=
+library(coda) 
+library(xtable)
+load("results.rda")
+n.iter <- 10000
+burnin <- 5000
+alphas <- mcmc.list(lapply(res, function(x) mcmc(x$alphas[burnin:n.iter,]))) 
+betas <- mcmc.list(lapply(res, function(x) mcmc(x$betas[burnin:n.iter,]))) 
+deltas <- mcmc.list(lapply(res, function(x) mcmc(x$deltas[burnin:n.iter,]))) 
+lambdas <- mcmc.list(lapply(res, function(x) mcmc(x$lambdas[burnin:n.iter,]))) 
+print(xtable(gelman.diag(alphas)[[1]], caption="The potential scale reduction factor for all alpha parameters"), table.placement='H')
+@
+
+<<betas, results='asis'>>=
+print(xtable(gelman.diag(betas)[[1]], caption="The potential scale reduction factor for all beta parameters"), table.placement='H')
+@
+
+<<deltas, results='asis'>>=
+print(xtable(gelman.diag(deltas)[[1]], caption="The potential scale reduction factor for all delta parameters"), table.placement='H')
+@
+
+<<lambdas, results='asis'>>=
+print(xtable(gelman.diag(lambdas)[[1]], caption="The potential scale reduction factor for all lambda parameters"), table.placement='H')
+@
+
+To ensure the algorithm has explored the entire sample space and has
+also not over represented areas of high probability, we track the
+proportion of proposed jumps that are accepted for each parameter
+sampled via Metropolis-Hastings in table 5. Note that all of these
+proportions are between 0.31 and 0.61; thus, all these rates are inside
+the rule of thumb of 0.2 to 0.6.
+
+<<MHrates, results='asis'>>=
+lu <- function(x) length(unique(x)) 
+ac.alpha <- apply(res[[1]]$alphas, 2, lu)/n.iter 
+ac.beta <- apply(res[[1]]$betas, 2, lu)/n.iter 
+ac.delta <- apply(res[[1]]$deltas, 2, lu)/n.iter 
+ac.lambda <- apply(res[[1]]$lambda, 2, lu)/n.iter
+df <- data.frame(alphas=ac.alpha, betas=ac.beta, deltas=ac.delta, lambdas=ac.lambda) 
+xtable(df, caption="Acceptance Rates for model parameters sampled via Metropolis-Hastings")
+@
+
+
+\subsection{Is there a home effect?}
+
+It's natural to think that players tend to perform better at their
+home stadium. According to the central 95\% credible intervals for
+each $\alpha_{i}$ (in table 6), there obviously is not a significant
+home field effect on the ``potential'' to hit a home run for any
+of these players. Similarly, according to the central 95\% credible
+intervals for each $\lambda_{i}$ (in table 7), there obviously is
+not a significant home field effect on the ``ability'' to hit a
+home run for any of these players.
+
+<<alphaCI, results='asis'>>=
+tab <- summary(alphas)[[2]][,c(1,5)]
+names(tab) <- c("Lower", "Upper")
+print(xtable(tab, caption="Central 95 percent credible intervals for every alpha."), table.placement='H')
+@
+
+<<lambdaCI, results='asis'>>=
+tab <- summary(lambdas)[[2]][,c(1,5)]
+names(tab) <- c("Lower", "Upper")
+print(xtable(tab, caption="Central 95 percent credible intervals for every lambda."), table.placement='H')
+@
+
+<<getDat, cache=TRUE>>=
+dat <- read.csv("data/dat.csv", header=TRUE, stringsAsFactors=FALSE)
+N <- length(dat$y) 
+n.players <- length(unique(dat$batter_name)) 
+ni <- as.numeric(table(dat$batter_name))
+@
+
+<<zeros-and-range, cache=TRUE>>=
+t <- exp(as.matrix(betas)) 
+theta <- t/(1+t)
+p <- exp(as.matrix(lambdas)) 
+psi <- p/(1+p)
+betaz <- apply(as.matrix(betas), 1, function(x) rep(x, ni)) 
+alphaz <- apply(as.matrix(alphas), 1, function(x) rep(x, ni)) 
+t <- exp(betaz + alphaz*dat$home) 
+rm(betaz) 
+rm(alphaz) 
+thetaz <- t/(1+t) 
+rm(t)
+lambdaz <- apply(as.matrix(lambdas), 1, function(x) rep(x, ni)) 
+deltaz <- apply(as.matrix(deltas), 1, function(x) rep(x, ni)) 
+p <- exp(deltaz + lambdaz*dat$home) 
+rm(lambdaz) 
+rm(deltaz) 
+psiz <- p/(1+p) 
+rm(p)
+
+n.zeros <- NULL 
+ranges <- NULL 
+for (m in 1:1000) {      
+	sim.x <- rbinom(N, size=1, prob=theta[m,])  
+	sim.y <- rbinom(N, size=dat$n, prob=psi[m,])   
+	sim.y[sim.x == 0] <- 0   
+	n.zeros <- c(n.zeros, sum(sim.y == 0))   
+	ranges <- c(ranges, max(sim.y) - min(sim.y)) 
+}
+
+real.n.zero <- sum(dat$y == 0) 
+p1 <- sum(n.zeros > real.n.zero)/length(n.zeros) 
+real.range <- max(dat$y)-min(dat$y) 
+p2 <- sum(ranges > real.range)/length(ranges)
+@
+
+Perhaps more interesting is ``home run potential''. Since Edwin
+Encarnacion is the player with the highest posterior mean for $\alpha_{i}$
+among all the players, he was chosen to see whether playing at home
+has much of any difference in this probability. In figure 1, the empirical
+distribution functions clearly show that playing at home has a very
+small positive impact on this probability. 
+
+<<ecdf-edwin, fig.cap="Empirical Distribution Function for Edwin Encarnacion's potential to hit home runs away (black) versus home (red).", out.width"\\textwith">>=
+edwina <- ecdf(theta[,4]) 
+plot(edwina, main="", ylab="Empirical Distribution Function",
+      xlab="Home run potential") 
+edwinh <- ecdf(thetaz[ni[4]+1,]) 
+lines(edwinh, col=2) 
+legend(0, 1, c("Home", "Away"), col=2:1, lty=1)
+@
+
+In a similar manner, we can address the impact of playing at home
+on the probability of actually hitting a home run given that a player
+has ``potential''. Since Josh Hamilton is the player with the highest
+posterior mean for $\lambda_{i}$ among all the players, he was chosen
+to see whether playing at home has much of any difference in this
+probability. In figure 2, the empirical distribution functions clearly
+show that playing at home has a very large positive impact on this
+probability. Based on figure 2, we would conclude that the probability
+Josh Hamilton has a probability of hitting a home run (given potential)
+is less than 0.2 is 0.9 at home but 0.2 away.
+
+<<ecdf-josh, fig.cap="Empirical Distribution Function for Josh Hamilton's home run hitting ability given potential in a game with 4 atbats. The function for a home game is shown in red while away is in black.">>=
+josha <- ecdf(4 *psi[,2]) 
+plot(josha, main="", ylab="Empirical Distribution Function",       
+xlab="Home runs given potential in a game with 4 atbats") 
+joshh <- ecdf(4 * psiz[ni[2]+5,]) 
+lines(joshh, col=2) 
+legend(3, 0.4, c("Home", "Away"), col=2:1, lty=1)
+@
+
+
+\section{Model Assessment}
+
+To assess the model we address the adequacy of the ``zero inflated-binomial''
+model for describing the data with respect to the number of games
+with no home runs and the range in the number of home runs per game.
+Using the procedure outlined on page 311 of the course notes, we obtain
+a posterior predictive p-value of \Sexpr{round(p1, 2)} for the number
+of zeros and \Sexpr{round(p2, 2)} for the range. The first p-value
+suggests that this model is adequate for describing the number of
+games without a home run. The second p-value suggests that this model
+lacks an ability to describe the spread in the number of home runs
+per game. Figure 3 shows the two different posterior predictive distributions
+and the corresponding actual values (vertical dashed line) computed
+from the observed data.
+
+<<plots, fig.show='hold', fig.cap="Posterior predictive distributions.">>=
+hist(n.zeros, main="Number of games without a home run.") 
+real.n.zero <- sum(dat$y == 0) 
+abline(v=real.n.zero, lty=2) 
+hist(ranges, main="Range of home runs per game.") 
+real.range <- max(dat$y)-min(dat$y) 
+abline(v=real.range, lty=2)
+@
+
+
+\section{Conclusion}
+
+The ``zero inflated-binomial model'' for home run hitting at the
+game level allows for inference related to the impact that playing
+at home has on both a player's ``potential'' to hit home runs and
+``ability'' to hit home runs. As it turns out, there seems to be
+a much higher positive impact on the ``ability'' to hit a home run
+when playing at home (at least for Josh Hamilton).
+
+\bibliographystyle{plainnat}
+\bibliography{0_Users_cpsievert_Desktop_github_local_zero-inflated-hrs_project520}
+
+\end{document}

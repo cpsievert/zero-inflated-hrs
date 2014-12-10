@@ -1,0 +1,1687 @@
+#LyX 2.0 created this file. For more info see http://www.lyx.org/
+\lyxformat 413
+\begin_document
+\begin_header
+\textclass article
+\begin_preamble
+\renewcommand{\textfraction}{0.05}
+\renewcommand{\topfraction}{0.8}
+\renewcommand{\bottomfraction}{0.8}
+\renewcommand{\floatpagefraction}{0.75}
+
+\usepackage[buttonsize=1em]{animate}
+\end_preamble
+\use_default_options true
+\begin_modules
+knitr
+\end_modules
+\maintain_unincluded_children false
+\language english
+\language_package none
+\inputencoding default
+\fontencoding global
+\font_roman palatino
+\font_sans lmss
+\font_typewriter lmtt
+\font_default_family default
+\use_non_tex_fonts false
+\font_sc true
+\font_osf false
+\font_sf_scale 100
+\font_tt_scale 100
+
+\graphics default
+\default_output_format default
+\output_sync 0
+\bibtex_command default
+\index_command default
+\paperfontsize default
+\spacing single
+\use_hyperref true
+\pdf_bookmarks true
+\pdf_bookmarksnumbered true
+\pdf_bookmarksopen true
+\pdf_bookmarksopenlevel 2
+\pdf_breaklinks false
+\pdf_pdfborder false
+\pdf_colorlinks false
+\pdf_backref false
+\pdf_pdfusetitle true
+\pdf_quoted_options "pdfstartview={XYZ null null 1}"
+\papersize default
+\use_geometry true
+\use_amsmath 1
+\use_esint 1
+\use_mhchem 1
+\use_mathdots 1
+\cite_engine natbib_authoryear
+\use_bibtopic false
+\use_indices false
+\paperorientation portrait
+\suppress_date false
+\use_refstyle 1
+\index Index
+\shortcut idx
+\color #008000
+\end_index
+\leftmargin 2.5cm
+\topmargin 2.5cm
+\rightmargin 2.5cm
+\bottommargin 2.5cm
+\secnumdepth 2
+\tocdepth 2
+\paragraph_separation indent
+\paragraph_indentation default
+\quotes_language english
+\papercolumns 1
+\papersides 1
+\paperpagestyle default
+\tracking_changes false
+\output_changes false
+\html_math_output 0
+\html_css_as_file 0
+\html_be_strict false
+\end_header
+
+\begin_body
+
+\begin_layout Standard
+\begin_inset ERT
+status open
+
+\begin_layout Plain Layout
+
+<<setup, include=FALSE, cache=FALSE>>=
+\end_layout
+
+\begin_layout Plain Layout
+
+library(knitr)
+\end_layout
+
+\begin_layout Plain Layout
+
+## set global chunk options
+\end_layout
+
+\begin_layout Plain Layout
+
+opts_chunk$set(fig.path='figure/', cache.path='cache/', fig.align='center',
+ out.width='8cm', out.height='6cm', echo=FALSE, message=FALSE)
+\end_layout
+
+\begin_layout Plain Layout
+
+@
+\end_layout
+
+\end_inset
+
+
+\end_layout
+
+\begin_layout Title
+A Bayesian Model for Evaluating MLB Hitting Performance
+\end_layout
+
+\begin_layout Author
+Carson Sievert
+\end_layout
+
+\begin_layout Section
+Introduction
+\end_layout
+
+\begin_layout Standard
+Statistical methods have been used to understand and analyze the game of
+ baseball for many years.
+ An obvious and popular application is modeling and predicting player performanc
+e.
+ 
+\begin_inset CommandInset citation
+LatexCommand citet
+key "bayesball"
+
+\end_inset
+
+ proposes a bayesian model for predicting hitting performance at the season
+ level.
+ This model was shown to be effective at prediction - especially for players
+ with little experience at the Major League level thanks to a shrinking
+ towards the population mean component.
+ In the discussion of that paper, reviewers call for a model at the game
+ (rather than) level.
+ The reasoning is to account for well-known factors on performance such
+ as a 
+\begin_inset Quotes eld
+\end_inset
+
+park effects
+\begin_inset Quotes erd
+\end_inset
+
+ and 
+\begin_inset Quotes eld
+\end_inset
+
+home field effects
+\begin_inset Quotes erd
+\end_inset
+
+.
+ This paper explores a step in that direction by modeling home run performance
+ at the game level and accounting for any 
+\begin_inset Quotes eld
+\end_inset
+
+home field effect
+\begin_inset Quotes erd
+\end_inset
+
+.
+\end_layout
+
+\begin_layout Section
+Data Collection
+\end_layout
+
+\begin_layout Standard
+The data used for this project was taken from the Major League Baseball
+ Advanced Media (MLBAM) website 
+\begin_inset Flex URL
+status collapsed
+
+\begin_layout Plain Layout
+
+http://gd2.mlb.com/components/game/mlb/
+\end_layout
+
+\end_inset
+
+ using the 
+\begin_inset ERT
+status open
+
+\begin_layout Plain Layout
+
+
+\backslash
+texttt{R}
+\end_layout
+
+\end_inset
+
+ package 
+\begin_inset ERT
+status open
+
+\begin_layout Plain Layout
+
+
+\backslash
+texttt{pitchRx}
+\end_layout
+
+\end_inset
+
+ 
+\begin_inset CommandInset citation
+LatexCommand citet
+key "pitchRx"
+
+\end_inset
+
+.
+ The number of home runs and number of atbats in every game over the 2012
+ season was collected for the five players with the highest home run total
+ in 2012.
+\end_layout
+
+\begin_layout Section
+Model Formulation
+\end_layout
+
+\begin_layout Standard
+Since home runs are such a rare event, we may want some type of zero-inflated
+ model if we want to model the number of home runs in a particular game.
+ For that reason, consider a latent Bernoulli random variable 
+\begin_inset Formula $X_{ij}$
+\end_inset
+
+ that will govern whether player 
+\begin_inset Formula $i$
+\end_inset
+
+ in game 
+\begin_inset Formula $j$
+\end_inset
+
+ has 
+\begin_inset Quotes eld
+\end_inset
+
+potential
+\begin_inset Quotes erd
+\end_inset
+
+ to get at least one success in 
+\begin_inset Formula $n_{ij}$
+\end_inset
+
+ atbats.
+ The Bernoulli parameter 
+\begin_inset Formula $\theta_{ij}$
+\end_inset
+
+ could thought of as a players 
+\begin_inset Quotes eld
+\end_inset
+
+potential
+\begin_inset Quotes erd
+\end_inset
+
+ for a particular game.
+\end_layout
+
+\begin_layout Standard
+\begin_inset Formula 
+\[
+f(X_{ij}=x_{ij}|\theta_{ij})=\theta_{ij}^{x_{ij}}(1-\theta_{ij})^{(1-x_{ij})},0<\theta_{ij}<1
+\]
+
+\end_inset
+
+
+\end_layout
+
+\begin_layout Standard
+where 
+\begin_inset Formula 
+\[
+x_{ij}=\begin{cases}
+0 & \mbox{no "potential success" }\\
+1 & \mbox{"potential success" }
+\end{cases}
+\]
+
+\end_inset
+
+ 
+\end_layout
+
+\begin_layout Standard
+To model the actual number of successes for player 
+\begin_inset Formula $i$
+\end_inset
+
+ in game 
+\begin_inset Formula $j$
+\end_inset
+
+, we use a Binomial random variable 
+\begin_inset Formula $Y_{ij}$
+\end_inset
+
+ where the number of trials 
+\begin_inset Formula $n_{ij}$
+\end_inset
+
+ is considered fixed.
+ In some sense, the success probability 
+\begin_inset Formula $\psi_{ij}$
+\end_inset
+
+ could thought of as a player's 
+\begin_inset Quotes eld
+\end_inset
+
+ability
+\begin_inset Quotes erd
+\end_inset
+
+ to hit a home run in a particular game.
+ To get the marginal distribution for 
+\begin_inset Formula $Y_{ij}$
+\end_inset
+
+, we could 
+\begin_inset Quotes eld
+\end_inset
+
+integrate out
+\begin_inset Quotes erd
+\end_inset
+
+ the latent 
+\begin_inset Formula $X_{ij}$
+\end_inset
+
+.
+ For example,
+\end_layout
+
+\begin_layout Standard
+\begin_inset Formula 
+\begin{align*}
+P(Y_{ij}=0)= & P(Y_{ij}=0|X_{ij}=0)P(X_{ij}=0)+P(Y_{ij}=0|X_{ij}=1)P(X_{ij}=1)=(1-\theta_{ij})+\theta_{ij}(1-\psi_{ij})^{n_{ij}}\\
+P(Y_{ij}=1)= & P(Y_{ij}=1|X_{ij}=1)P(X_{ij}=1)=n_{ij}\psi_{ij}(1-\psi_{ij})^{n_{ij}-1}\theta_{ij}\\
+P(Y_{ij}=2)= & P(Y_{ij}=2|X_{ij}=1)P(X_{ij}=1)=\binom{{n_{ij}}}{2}\psi_{ij}^{2}(1-\psi_{ij})^{n_{ij}-2}\theta_{ij}\\
+\vdots
+\end{align*}
+
+\end_inset
+
+
+\begin_inset Formula 
+\begin{align*}
+\end{align*}
+
+\end_inset
+
+
+\end_layout
+
+\begin_layout Standard
+We can describe this distribution in general by:
+\begin_inset Formula 
+\[
+\]
+
+\end_inset
+
+
+\end_layout
+
+\begin_layout Standard
+\begin_inset Formula 
+\[
+P(Y_{ij}=y_{ij})=\begin{cases}
+(1-\theta_{ij})+\theta_{ij}(1-\psi_{ij})^{n_{ij}} & \mbox{if }y_{ij}=0\\
+\binom{{n_{ij}}}{y_{ij}}\psi_{ij}^{y_{ij}}(1-\psi_{ij})^{(n_{ij}-y_{ij})}\theta_{ij} & \mbox{if }y_{ij}\in\{{1,2,\dots,n_{ij}}\}
+\end{cases},0<\psi_{ij}<1
+\]
+
+\end_inset
+
+
+\end_layout
+
+\begin_layout Standard
+Now we consider the parameters 
+\begin_inset Formula $\theta_{ij}$
+\end_inset
+
+ and 
+\begin_inset Formula $\psi_{ij}$
+\end_inset
+
+ to be unknown quantities and can be described through the deterministic
+ relationships: 
+\end_layout
+
+\begin_layout Standard
+\begin_inset Formula 
+\[
+\log(\frac{\theta_{ij}}{1-\theta_{ij}})=\beta_{i}+\alpha_{i}H_{ij}
+\]
+
+\end_inset
+
+
+\end_layout
+
+\begin_layout Standard
+\begin_inset Formula 
+\[
+\log(\frac{\psi_{ij}}{1-\psi_{ij}})=\delta_{i}+\lambda_{i}H_{ij}
+\]
+
+\end_inset
+
+
+\end_layout
+
+\begin_layout Standard
+where 
+\begin_inset Formula $H_{ij}$
+\end_inset
+
+ is an indicator variable that is 1 if game 
+\begin_inset Formula $j$
+\end_inset
+
+ was a 
+\begin_inset Quotes eld
+\end_inset
+
+home
+\begin_inset Quotes erd
+\end_inset
+
+ game for player 
+\begin_inset Formula $i$
+\end_inset
+
+ and 0 otherwise.
+ This leaves use to choose distributions for the (independent) set of random
+ quantities 
+\begin_inset Formula $\beta_{i},\delta_{i},\alpha_{i},\lambda_{i}:$
+\end_inset
+
+
+\end_layout
+
+\begin_layout Standard
+\begin_inset Formula 
+\begin{align*}
+ & \beta_{i}\sim N(\beta_{0},\sigma_{\beta}^{2})\\
+ & \alpha_{i}\sim N(\alpha_{0},\sigma_{\alpha}^{2})\\
+ & \delta_{i}\sim N(\delta_{0},\sigma_{\delta}^{2})\\
+ & \lambda_{i}\sim N(\lambda_{0},\sigma_{\lambda}^{2})
+\end{align*}
+
+\end_inset
+
+
+\end_layout
+
+\begin_layout Standard
+where 
+\begin_inset Formula $\beta_{0},\sigma_{\beta},\alpha_{0},\sigma_{\alpha},\delta_{0},\sigma_{\delta},\lambda_{0},$
+\end_inset
+
+ and 
+\begin_inset Formula $\sigma_{\lambda}$
+\end_inset
+
+ are all 
+\begin_inset Quotes eld
+\end_inset
+
+known
+\begin_inset Quotes erd
+\end_inset
+
+ quantities that are chosen such that we have diffuse priors that reflects
+ a lack of prior knowledge.
+ In particular, the mean and standard deviation was set to 0 and 5, respectively.
+\end_layout
+
+\begin_layout Section
+Fitting the model
+\end_layout
+
+\begin_layout Standard
+This section addresses how samples from the joint posterior distribution
+ were obtained.
+ Full conditional posterior distributions were derived for all quantities
+ involved (besides the observed data).
+ A Gibbs sampling algorithm was employed on these full conditionals to obtain
+ draws from the joint distribution.
+ 
+\end_layout
+
+\begin_layout Standard
+\begin_inset Formula 
+\[
+p(\beta_{i},\delta_{i},\alpha_{i},\lambda_{i}|\textbf{{y_{i}}})\propto p(\textbf{{y_{i}}}|\beta_{i},\delta_{i},\alpha_{i},\lambda_{i})p(\beta_{i})p(\delta_{i})p(\alpha_{i})p(\lambda_{i})
+\]
+
+\end_inset
+
+
+\end_layout
+
+\begin_layout Standard
+The notation 
+\begin_inset Formula $p(x|\cdot)$
+\end_inset
+
+ is now used to represent the conditional density of 
+\begin_inset Formula $X$
+\end_inset
+
+ given all other quantities.
+ Note that 
+\begin_inset Formula $y_{i}$
+\end_inset
+
+ is used to represent a vector whose length is equal to the number of games
+ played by player 
+\begin_inset Formula $i$
+\end_inset
+
+.
+\end_layout
+
+\begin_layout Subsection
+Full conditionals
+\end_layout
+
+\begin_layout Enumerate
+The full conditional densities of 
+\begin_inset Formula $\beta_{i}$
+\end_inset
+
+ for 
+\begin_inset Formula $i=1,\dots,5$
+\end_inset
+
+ are:
+\begin_inset Formula 
+\[
+p(\beta_{i}|\cdot)\propto p(y_{i}|\cdot)p(\beta_{i})\propto p(y_{i}|\cdot)exp\left\{ \frac{{-(\beta_{i}-\beta_{0})^{2}}}{2\sigma_{\beta}^{2}}\right\} 
+\]
+
+\end_inset
+
+In order to sample from this form, an 
+\begin_inset ERT
+status open
+
+\begin_layout Plain Layout
+
+
+\backslash
+emph{adaptive}
+\end_layout
+
+\end_inset
+
+ Metropolis-Hastings algorithm is used with a Gaussian proposal 
+\begin_inset Formula $N(\beta_{i}^{(k)},(\tau_{\beta}^{2})^{(k)})$
+\end_inset
+
+ where 
+\begin_inset Formula $\beta_{i}^{(k)}$
+\end_inset
+
+is the simulated value from the 
+\begin_inset Formula $k^{th}$
+\end_inset
+
+ iteration.
+ The adaptive piece helps to obtain a reasonable acceptance rate by increasing
+ or decreasing 
+\begin_inset Formula $(\tau_{\beta}^{2})^{(k+1)}$
+\end_inset
+
+ based on whether or not 
+\begin_inset Formula $k^{th}$
+\end_inset
+
+ proposal was accepted.
+\end_layout
+
+\begin_layout Enumerate
+The full conditional densities of 
+\begin_inset Formula $\delta_{i}$
+\end_inset
+
+ for 
+\begin_inset Formula $i=1,\dots,5$
+\end_inset
+
+ are:
+\begin_inset Formula 
+\[
+p(\delta_{i}|\cdot)\propto p(y_{i}|\cdot)p(\delta_{i})\propto p(y_{i}|\cdot)exp\left\{ \frac{{-(\delta_{i}-\delta_{0})^{2}}}{2\sigma_{\delta}^{2}}\right\} 
+\]
+
+\end_inset
+
+In order to sample from this form, an 
+\begin_inset ERT
+status open
+
+\begin_layout Plain Layout
+
+
+\backslash
+emph{adaptive}
+\end_layout
+
+\end_inset
+
+ Metropolis-Hastings algorithm is used with a Gaussian proposal 
+\begin_inset Formula $N(\delta_{i}^{(k)},(\tau_{\delta}^{2})^{(k)})$
+\end_inset
+
+ where 
+\begin_inset Formula $\delta_{i}^{(k)}$
+\end_inset
+
+is the simulated value from the 
+\begin_inset Formula $k^{th}$
+\end_inset
+
+ iteration.
+ The adaptive piece helps to obtain a reasonable acceptance rate by increasing
+ or decreasing 
+\begin_inset Formula $(\tau_{\delta}^{2})^{(k+1)}$
+\end_inset
+
+ based on whether or not 
+\begin_inset Formula $k^{th}$
+\end_inset
+
+ proposal was accepted.
+\end_layout
+
+\begin_layout Enumerate
+The full conditional densities of 
+\begin_inset Formula $\alpha_{i}$
+\end_inset
+
+ for 
+\begin_inset Formula $i=1,\dots,5$
+\end_inset
+
+ are:
+\begin_inset Formula 
+\[
+p(\alpha_{i}|\cdot)\propto p(y_{i}|\cdot)p(\alpha_{i})\propto p(y_{i}|\cdot)exp\left\{ \frac{{-(\alpha_{i}-\alpha_{0})^{2}}}{2\sigma_{\alpha}^{2}}\right\} 
+\]
+
+\end_inset
+
+In order to sample from this form, an 
+\begin_inset ERT
+status open
+
+\begin_layout Plain Layout
+
+
+\backslash
+emph{adaptive}
+\end_layout
+
+\end_inset
+
+ Metropolis-Hastings algorithm is used with a Gaussian proposal 
+\begin_inset Formula $N(\alpha_{i}^{(k)},(\tau_{\alpha}^{2})^{(k)})$
+\end_inset
+
+ where 
+\begin_inset Formula $\alpha_{i}^{(k)}$
+\end_inset
+
+is the simulated value from the 
+\begin_inset Formula $k^{th}$
+\end_inset
+
+ iteration.
+ The adaptive piece helps to obtain a reasonable acceptance rate by increasing
+ or decreasing 
+\begin_inset Formula $(\tau_{\alpha}^{2})^{(k+1)}$
+\end_inset
+
+ based on whether or not 
+\begin_inset Formula $k^{th}$
+\end_inset
+
+ proposal was accepted.
+\end_layout
+
+\begin_layout Enumerate
+The full conditional densities of 
+\begin_inset Formula $\lambda_{i}$
+\end_inset
+
+ for 
+\begin_inset Formula $i=1,\dots,5$
+\end_inset
+
+ are:
+\begin_inset Formula 
+\[
+p(\lambda_{i}|\cdot)\propto p(y_{i}|\cdot)p(\lambda_{i})\propto p(y_{i}|\cdot)exp\left\{ \frac{{-(\lambda_{i}-\lambda_{0})^{2}}}{2\sigma_{\lambda}^{2}}\right\} 
+\]
+
+\end_inset
+
+In order to sample from this form, an 
+\begin_inset ERT
+status open
+
+\begin_layout Plain Layout
+
+
+\backslash
+emph{adaptive}
+\end_layout
+
+\end_inset
+
+ Metropolis-Hastings algorithm is used with a Gaussian proposal 
+\begin_inset Formula $N(\lambda_{i}^{(k)},(\tau_{\lambda}^{2})^{(k)})$
+\end_inset
+
+ where 
+\begin_inset Formula $\lambda_{i}^{(k)}$
+\end_inset
+
+is the simulated value from the 
+\begin_inset Formula $k^{th}$
+\end_inset
+
+ iteration.
+ The adaptive piece helps to obtain a reasonable acceptance rate by increasing
+ or decreasing 
+\begin_inset Formula $(\tau_{\lambda}^{2})^{(k+1)}$
+\end_inset
+
+ based on whether or not 
+\begin_inset Formula $k^{th}$
+\end_inset
+
+ proposal was accepted.
+\end_layout
+
+\begin_layout Subsection
+Monitoring Convergence
+\end_layout
+
+\begin_layout Standard
+Three different chains with randomly dispersed starting values were each
+ run for 10000 iterations with an adaptation period of 1000 and burnin of
+ 5000.
+ The Gelman and Rubin scale reduction factor for each parameter was computed
+ and is presented below.
+ Clearly, the factor value looks good (very close or equal to 1) for all
+ 
+\begin_inset Formula $\alpha_{i}$
+\end_inset
+
+ in table 1.
+ Similarly, the factor value looks good for all 
+\begin_inset Formula $\beta_{i}$
+\end_inset
+
+ in table 2.
+ The factor values for some 
+\begin_inset Formula $\delta_{i}$
+\end_inset
+
+ in table 3 and 
+\begin_inset Formula $\lambda_{i}$
+\end_inset
+
+ in table 4 are a little higher than we would like to see, but they don't
+ cause an overwhelming reason for worry.
+\end_layout
+
+\begin_layout Standard
+\begin_inset ERT
+status open
+
+\begin_layout Plain Layout
+
+<<alphas, results='asis'>>=
+\end_layout
+
+\begin_layout Plain Layout
+
+library(coda) 
+\end_layout
+
+\begin_layout Plain Layout
+
+library(xtable)
+\end_layout
+
+\begin_layout Plain Layout
+
+load("results.rda")
+\end_layout
+
+\begin_layout Plain Layout
+
+n.iter <- 10000
+\end_layout
+
+\begin_layout Plain Layout
+
+burnin <- 5000
+\end_layout
+
+\begin_layout Plain Layout
+
+alphas <- mcmc.list(lapply(res, function(x) mcmc(x$alphas[burnin:n.iter,])))
+ 
+\end_layout
+
+\begin_layout Plain Layout
+
+betas <- mcmc.list(lapply(res, function(x) mcmc(x$betas[burnin:n.iter,])))
+ 
+\end_layout
+
+\begin_layout Plain Layout
+
+deltas <- mcmc.list(lapply(res, function(x) mcmc(x$deltas[burnin:n.iter,])))
+ 
+\end_layout
+
+\begin_layout Plain Layout
+
+lambdas <- mcmc.list(lapply(res, function(x) mcmc(x$lambdas[burnin:n.iter,])))
+ 
+\end_layout
+
+\begin_layout Plain Layout
+
+print(xtable(gelman.diag(alphas)[[1]], caption="The potential scale reduction
+ factor for all alpha parameters"), table.placement='H')
+\end_layout
+
+\begin_layout Plain Layout
+
+@
+\end_layout
+
+\end_inset
+
+
+\end_layout
+
+\begin_layout Standard
+\begin_inset ERT
+status open
+
+\begin_layout Plain Layout
+
+<<betas, results='asis'>>=
+\end_layout
+
+\begin_layout Plain Layout
+
+print(xtable(gelman.diag(betas)[[1]], caption="The potential scale reduction
+ factor for all beta parameters"), table.placement='H')
+\end_layout
+
+\begin_layout Plain Layout
+
+@
+\end_layout
+
+\end_inset
+
+
+\end_layout
+
+\begin_layout Standard
+\begin_inset ERT
+status open
+
+\begin_layout Plain Layout
+
+<<deltas, results='asis'>>=
+\end_layout
+
+\begin_layout Plain Layout
+
+print(xtable(gelman.diag(deltas)[[1]], caption="The potential scale reduction
+ factor for all delta parameters"), table.placement='H')
+\end_layout
+
+\begin_layout Plain Layout
+
+@
+\end_layout
+
+\end_inset
+
+
+\end_layout
+
+\begin_layout Standard
+\begin_inset ERT
+status open
+
+\begin_layout Plain Layout
+
+<<lambdas, results='asis'>>=
+\end_layout
+
+\begin_layout Plain Layout
+
+print(xtable(gelman.diag(lambdas)[[1]], caption="The potential scale reduction
+ factor for all lambda parameters"), table.placement='H')
+\end_layout
+
+\begin_layout Plain Layout
+
+@
+\end_layout
+
+\end_inset
+
+
+\end_layout
+
+\begin_layout Standard
+To ensure the algorithm has explored the entire sample space and has also
+ not over represented areas of high probability, we track the proportion
+ of proposed jumps that are accepted for each parameter sampled via Metropolis-H
+astings in table 5.
+ Note that all of these proportions are between 0.31 and 0.61; thus, all these
+ rates are inside the rule of thumb of 0.2 to 0.6.
+\end_layout
+
+\begin_layout Standard
+\begin_inset ERT
+status open
+
+\begin_layout Plain Layout
+
+<<MHrates, results='asis'>>=
+\end_layout
+
+\begin_layout Plain Layout
+
+lu <- function(x) length(unique(x)) 
+\end_layout
+
+\begin_layout Plain Layout
+
+ac.alpha <- apply(res[[1]]$alphas, 2, lu)/n.iter 
+\end_layout
+
+\begin_layout Plain Layout
+
+ac.beta <- apply(res[[1]]$betas, 2, lu)/n.iter 
+\end_layout
+
+\begin_layout Plain Layout
+
+ac.delta <- apply(res[[1]]$deltas, 2, lu)/n.iter 
+\end_layout
+
+\begin_layout Plain Layout
+
+ac.lambda <- apply(res[[1]]$lambda, 2, lu)/n.iter
+\end_layout
+
+\begin_layout Plain Layout
+
+df <- data.frame(alphas=ac.alpha, betas=ac.beta, deltas=ac.delta, lambdas=ac.lambda)
+ 
+\end_layout
+
+\begin_layout Plain Layout
+
+xtable(df, caption="Acceptance Rates for model parameters sampled via Metropolis
+-Hastings")
+\end_layout
+
+\begin_layout Plain Layout
+
+@
+\end_layout
+
+\end_inset
+
+
+\end_layout
+
+\begin_layout Subsection
+Is there a home effect?
+\end_layout
+
+\begin_layout Standard
+It's natural to think that players tend to perform better at their home
+ stadium.
+ However, according to the central 95% credible intervals for each 
+\begin_inset Formula $\alpha_{i}$
+\end_inset
+
+ (in table 6), there obviously is not a significant home field effect on
+ the 
+\begin_inset Quotes eld
+\end_inset
+
+potential
+\begin_inset Quotes erd
+\end_inset
+
+ to hit a home run for any of these players.
+ Similarly, according to the central 95% credible intervals for each 
+\begin_inset Formula $\lambda_{i}$
+\end_inset
+
+ (in table 7), there obviously is not a significant home field effect on
+ the 
+\begin_inset Quotes eld
+\end_inset
+
+ability
+\begin_inset Quotes erd
+\end_inset
+
+ to hit a home run for any of these players.
+\end_layout
+
+\begin_layout Standard
+\begin_inset ERT
+status open
+
+\begin_layout Plain Layout
+
+<<alphaCI, results='asis'>>=
+\end_layout
+
+\begin_layout Plain Layout
+
+tab <- summary(alphas)[[2]][,c(1,5)]
+\end_layout
+
+\begin_layout Plain Layout
+
+names(tab) <- c("Lower", "Upper")
+\end_layout
+
+\begin_layout Plain Layout
+
+print(xtable(tab, caption="Central 95 percent credible intervals for every
+ alpha."), table.placement='H')
+\end_layout
+
+\begin_layout Plain Layout
+
+@
+\end_layout
+
+\end_inset
+
+
+\end_layout
+
+\begin_layout Standard
+\begin_inset ERT
+status open
+
+\begin_layout Plain Layout
+
+<<lambdaCI, results='asis'>>=
+\end_layout
+
+\begin_layout Plain Layout
+
+tab <- summary(lambdas)[[2]][,c(1,5)]
+\end_layout
+
+\begin_layout Plain Layout
+
+names(tab) <- c("Lower", "Upper")
+\end_layout
+
+\begin_layout Plain Layout
+
+print(xtable(tab, caption="Central 95 percent credible intervals for every
+ lambda."), table.placement='H')
+\end_layout
+
+\begin_layout Plain Layout
+
+@
+\end_layout
+
+\end_inset
+
+
+\end_layout
+
+\begin_layout Standard
+\begin_inset ERT
+status open
+
+\begin_layout Plain Layout
+
+<<getDat, cache=TRUE>>=
+\end_layout
+
+\begin_layout Plain Layout
+
+dat <- read.csv("data/dat.csv", header=TRUE, stringsAsFactors=FALSE)
+\end_layout
+
+\begin_layout Plain Layout
+
+N <- length(dat$y) 
+\end_layout
+
+\begin_layout Plain Layout
+
+n.players <- length(unique(dat$batter_name)) 
+\end_layout
+
+\begin_layout Plain Layout
+
+ni <- as.numeric(table(dat$batter_name))
+\end_layout
+
+\begin_layout Plain Layout
+
+@
+\end_layout
+
+\end_inset
+
+
+\end_layout
+
+\begin_layout Standard
+\begin_inset ERT
+status open
+
+\begin_layout Plain Layout
+
+<<zeros-and-range, cache=TRUE>>=
+\end_layout
+
+\begin_layout Plain Layout
+
+t <- exp(as.matrix(betas)) 
+\end_layout
+
+\begin_layout Plain Layout
+
+theta <- t/(1+t)
+\end_layout
+
+\begin_layout Plain Layout
+
+p <- exp(as.matrix(lambdas)) 
+\end_layout
+
+\begin_layout Plain Layout
+
+psi <- p/(1+p)
+\end_layout
+
+\begin_layout Plain Layout
+
+betaz <- apply(as.matrix(betas), 1, function(x) rep(x, ni)) 
+\end_layout
+
+\begin_layout Plain Layout
+
+alphaz <- apply(as.matrix(alphas), 1, function(x) rep(x, ni)) 
+\end_layout
+
+\begin_layout Plain Layout
+
+t <- exp(betaz + alphaz*dat$home) 
+\end_layout
+
+\begin_layout Plain Layout
+
+rm(betaz) 
+\end_layout
+
+\begin_layout Plain Layout
+
+rm(alphaz) 
+\end_layout
+
+\begin_layout Plain Layout
+
+thetaz <- t/(1+t) 
+\end_layout
+
+\begin_layout Plain Layout
+
+rm(t)
+\end_layout
+
+\begin_layout Plain Layout
+
+lambdaz <- apply(as.matrix(lambdas), 1, function(x) rep(x, ni)) 
+\end_layout
+
+\begin_layout Plain Layout
+
+deltaz <- apply(as.matrix(deltas), 1, function(x) rep(x, ni)) 
+\end_layout
+
+\begin_layout Plain Layout
+
+p <- exp(deltaz + lambdaz*dat$home) 
+\end_layout
+
+\begin_layout Plain Layout
+
+rm(lambdaz) 
+\end_layout
+
+\begin_layout Plain Layout
+
+rm(deltaz) 
+\end_layout
+
+\begin_layout Plain Layout
+
+psiz <- p/(1+p) 
+\end_layout
+
+\begin_layout Plain Layout
+
+rm(p)
+\end_layout
+
+\begin_layout Plain Layout
+
+\end_layout
+
+\begin_layout Plain Layout
+
+n.zeros <- NULL 
+\end_layout
+
+\begin_layout Plain Layout
+
+ranges <- NULL 
+\end_layout
+
+\begin_layout Plain Layout
+
+for (m in 1:1000) {      
+\end_layout
+
+\begin_layout Plain Layout
+
+	sim.x <- rbinom(N, size=1, prob=theta[m,])  
+\end_layout
+
+\begin_layout Plain Layout
+
+	sim.y <- rbinom(N, size=dat$n, prob=psi[m,])   
+\end_layout
+
+\begin_layout Plain Layout
+
+	sim.y[sim.x == 0] <- 0   
+\end_layout
+
+\begin_layout Plain Layout
+
+	n.zeros <- c(n.zeros, sum(sim.y == 0))   
+\end_layout
+
+\begin_layout Plain Layout
+
+	ranges <- c(ranges, max(sim.y) - min(sim.y)) 
+\end_layout
+
+\begin_layout Plain Layout
+
+}
+\end_layout
+
+\begin_layout Plain Layout
+
+\end_layout
+
+\begin_layout Plain Layout
+
+real.n.zero <- sum(dat$y == 0) 
+\end_layout
+
+\begin_layout Plain Layout
+
+p1 <- sum(n.zeros > real.n.zero)/length(n.zeros) 
+\end_layout
+
+\begin_layout Plain Layout
+
+real.range <- max(dat$y)-min(dat$y) 
+\end_layout
+
+\begin_layout Plain Layout
+
+p2 <- sum(ranges > real.range)/length(ranges)
+\end_layout
+
+\begin_layout Plain Layout
+
+@
+\end_layout
+
+\end_inset
+
+
+\end_layout
+
+\begin_layout Standard
+Although these effects are not significantly different, we can still investigate
+ differences in the empirical distribution function for potential and ability
+ given potential.
+ Since Edwin Encarnacion is the player with the highest posterior mean for
+ 
+\begin_inset Formula $\alpha_{i}$
+\end_inset
+
+ among all the players, he is a good choice to demonstrate this difference
+ for potential.
+ In figure 
+\begin_inset ERT
+status open
+
+\begin_layout Plain Layout
+
+
+\backslash
+ref{fig:ecdf-edwin}
+\end_layout
+
+\end_inset
+
+, the empirical distribution functions for Encarnacion clearly show that
+ playing at home has a very small positive impact on home run potential.
+ 
+\end_layout
+
+\begin_layout Standard
+\begin_inset ERT
+status open
+
+\begin_layout Plain Layout
+
+<<ecdf-edwin, fig.cap="Empirical Distribution Function for Edwin Encarnacion's
+ potential to hit home runs away (black) versus home (red).", out.width="0.6
+\backslash
+
+\backslash
+linewidth", fig.width=6, fig.height=4>>=
+\end_layout
+
+\begin_layout Plain Layout
+
+edwina <- ecdf(theta[,4]) 
+\end_layout
+
+\begin_layout Plain Layout
+
+plot(edwina, main="", ylab="Empirical Distribution Function",
+\end_layout
+
+\begin_layout Plain Layout
+
+      xlab="Home run potential") 
+\end_layout
+
+\begin_layout Plain Layout
+
+edwinh <- ecdf(thetaz[ni[4]+1,]) 
+\end_layout
+
+\begin_layout Plain Layout
+
+lines(edwinh, col=2) 
+\end_layout
+
+\begin_layout Plain Layout
+
+legend(0, 1, c("Home", "Away"), col=2:1, lty=1)
+\end_layout
+
+\begin_layout Plain Layout
+
+@
+\end_layout
+
+\end_inset
+
+
+\end_layout
+
+\begin_layout Standard
+In a similar manner, we can address the impact of playing at home given
+ that a player has 
+\begin_inset Quotes eld
+\end_inset
+
+potential
+\begin_inset Quotes erd
+\end_inset
+
+.
+ Since Josh Hamilton is the player with the highest posterior mean for 
+\begin_inset Formula $\lambda_{i}$
+\end_inset
+
+ among all the players, he is a good choice to demonstrate this difference
+ in ability given potential.
+ In figure 2, the empirical distribution functions clearly show that playing
+ at home has a very large positive impact on this probability.
+ Based on figure 2, we would conclude that, given Hamilton has potential
+ in a game where he bats four times, the probability he hits at least one
+ home run is 0.9 at home but only 0.2 away.
+\end_layout
+
+\begin_layout Standard
+\begin_inset ERT
+status open
+
+\begin_layout Plain Layout
+
+<<ecdf-josh, fig.cap="Empirical Distribution Function for Josh Hamilton's
+ home run hitting ability given potential in a game with 4 atbats.
+ The function for a home game is shown in red while away is in black.", out.width=
+"0.6
+\backslash
+
+\backslash
+linewidth", fig.width=6, fig.height=4>>=
+\end_layout
+
+\begin_layout Plain Layout
+
+josha <- ecdf(4 *psi[,2]) 
+\end_layout
+
+\begin_layout Plain Layout
+
+plot(josha, main="", ylab="Empirical Distribution Function",       
+\end_layout
+
+\begin_layout Plain Layout
+
+xlab="Home runs given potential in a game with 4 atbats") 
+\end_layout
+
+\begin_layout Plain Layout
+
+joshh <- ecdf(4 * psiz[ni[2]+5,]) 
+\end_layout
+
+\begin_layout Plain Layout
+
+lines(joshh, col=2) 
+\end_layout
+
+\begin_layout Plain Layout
+
+legend(3, 0.4, c("Home", "Away"), col=2:1, lty=1)
+\end_layout
+
+\begin_layout Plain Layout
+
+@
+\end_layout
+
+\end_inset
+
+
+\end_layout
+
+\begin_layout Section
+Model Assessment
+\end_layout
+
+\begin_layout Standard
+To assess the model we address the adequacy of the 
+\begin_inset Quotes eld
+\end_inset
+
+zero inflated-binomial
+\begin_inset Quotes erd
+\end_inset
+
+ model for describing the data with respect to the number of games with
+ no home runs and the range in the number of home runs per game.
+ Using the procedure outlined on page 311 of the course notes, we obtain
+ a posterior predictive p-value of 
+\begin_inset ERT
+status open
+
+\begin_layout Plain Layout
+
+
+\backslash
+Sexpr{round(p1, 2)}
+\end_layout
+
+\end_inset
+
+ for the number of zeros and 
+\begin_inset ERT
+status open
+
+\begin_layout Plain Layout
+
+
+\backslash
+Sexpr{round(p2, 2)}
+\end_layout
+
+\end_inset
+
+ for the range.
+ The first p-value suggests that this model is adequate for describing the
+ number of games without a home run.
+ The second p-value suggests that this model lacks an ability to describe
+ the spread in the number of home runs per game.
+ Figure 3 shows the two different posterior predictive distributions and
+ the corresponding actual values (vertical dashed line) computed from the
+ observed data.
+\end_layout
+
+\begin_layout Standard
+\begin_inset ERT
+status open
+
+\begin_layout Plain Layout
+
+<<plots, fig.show='hold', fig.cap="Posterior predictive distributions.">>=
+\end_layout
+
+\begin_layout Plain Layout
+
+hist(n.zeros, main="Number of games without a home run.") 
+\end_layout
+
+\begin_layout Plain Layout
+
+real.n.zero <- sum(dat$y == 0) 
+\end_layout
+
+\begin_layout Plain Layout
+
+abline(v=real.n.zero, lty=2) 
+\end_layout
+
+\begin_layout Plain Layout
+
+hist(ranges, main="Range of home runs per game.") 
+\end_layout
+
+\begin_layout Plain Layout
+
+real.range <- max(dat$y)-min(dat$y) 
+\end_layout
+
+\begin_layout Plain Layout
+
+abline(v=real.range, lty=2)
+\end_layout
+
+\begin_layout Plain Layout
+
+@
+\end_layout
+
+\end_inset
+
+
+\end_layout
+
+\begin_layout Section
+Conclusion
+\end_layout
+
+\begin_layout Standard
+The 
+\begin_inset Quotes eld
+\end_inset
+
+zero inflated-binomial model
+\begin_inset Quotes erd
+\end_inset
+
+ for home run hitting at the game level allows for inference related to
+ the impact that playing at home has on both a player's 
+\begin_inset Quotes eld
+\end_inset
+
+potential
+\begin_inset Quotes erd
+\end_inset
+
+ to hit home runs and 
+\begin_inset Quotes eld
+\end_inset
+
+ability
+\begin_inset Quotes erd
+\end_inset
+
+ to hit home runs.
+ Although a significant difference in home effects was not shown for either,
+ that would likely change if we were include more observations into the
+ model.
+ In particular, there is evidence to believe that playing at home has a
+ positive effect 
+\begin_inset Quotes eld
+\end_inset
+
+ability
+\begin_inset Quotes erd
+\end_inset
+
+ to hit a home run (given 
+\begin_inset Quotes eld
+\end_inset
+
+potential
+\begin_inset Quotes erd
+\end_inset
+
+).
+\end_layout
+
+\begin_layout Standard
+\begin_inset CommandInset bibtex
+LatexCommand bibtex
+bibfiles "project520"
+options "plainnat"
+
+\end_inset
+
+
+\end_layout
+
+\end_body
+\end_document
