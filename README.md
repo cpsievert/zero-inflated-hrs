@@ -1,0 +1,1 @@
+This work is licensed under the [CC-BY license](https://creativecommons.org/licenses/by/3.0/us/)
